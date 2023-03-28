@@ -17,10 +17,10 @@ def compressAndDelete(filename):
 if __name__ == "__main__":
     # Open Config file
     try:
-        with open("settings.cfg", "r") as f:
+        with open("./settings.cfg", "r") as f:
             lines = f.readlines()
         for line in lines:
-            if line.startswith("#"):
+            if line.startswith("#") or line == "\n":
                 continue
             else:
                 key, val = line.split("=")
@@ -62,7 +62,6 @@ if __name__ == "__main__":
                         val = list(map(lambda x: x.strip(), val))
                 CONFIG[key] = val if val != None else CONFIG[key]
         print("Config loaded.")
-        print(f"{CONFIG['loggingLevel']}")
     except:
         with open("settings.cfg", "w") as f:
             f.write("""## To change the settings from default, enter config keys with values or uncomment following lines
