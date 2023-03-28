@@ -3,9 +3,10 @@ import pathlib
 import os
 import logging
 import time
+from math import inf as infinity
 
-CONFIG = {"compressionLevel": 5, "rootFolderPath": ".",
-          "filePatterns": ["*.csv"], "loggingLevel": logging.INFO, "timeInterval": 60}
+CONFIG = {"compressionLevel": 5, "rootFolderPath": ".", "filePatterns": [
+    "*.csv"], "loggingLevel": logging.INFO, "timeInterval": 60, "noIterations": infinity}
 
 
 def compressAndDelete(filename):
@@ -60,6 +61,14 @@ if __name__ == "__main__":
                     case "rootFolderPath":
                         val = val.split("|")
                         val = list(map(lambda x: x.strip(), val))
+                    case "noIterations":
+                        try:
+                            val = int(val)
+                            val = infinity if val < 0 else val
+                        except:
+                            val = None
+                            print("Invalid compression level")
+
                 CONFIG[key] = val if val != None else CONFIG[key]
         print("Config loaded.")
     except:
@@ -75,7 +84,11 @@ if __name__ == "__main__":
 ## File pattern is the pattern in the name the program will look for when searching for files, use the pipe "|" character to separate patterns
 #filePatterns=*.csv
 
-## Time interval is the time between the start of each iteration of the search measured in seconds (you can include milliseconds by using the dot "." character)
+## Number of iterations, integer that sets the number of times the program scans for files. When set to 0 or lower, it will run indefinetly.
+#noIterations=-1
+
+## Time interval is the time between the start of each iteration of the search measured in seconds (you can include milliseconds by using the dot "." character).
+## It is recommended to set it to 0 when the number of iterations is 1
 #timeInterval=60
 
 ## Logging level is the level of onformation saved to the .log file. Acceptable options are: DEBUG | INFO | WARNING | ERROR | CRITICAL
@@ -84,7 +97,8 @@ if __name__ == "__main__":
 
     logging.basicConfig(filename=f'app_{time.strftime("%Y%m%d%H%M%S")}.log', filemode='w',
                         level=CONFIG["loggingLevel"], format='[%(asctime)s]: {%(levelname)s} %(message)s')
-    while True:
+    iteration = 0
+    while iteration < CONFIG["noIterations"]:
         startTime = time.time()
         noFiles = 0
         for pattern in CONFIG["filePatterns"]:
@@ -110,3 +124,5 @@ if __name__ == "__main__":
         print(f"Compressed {noFiles} files.")
         while time.time()-startTime < CONFIG["timeInterval"]:
             pass
+        if CONFIG["noIterations"] != infinity:
+            iteration += 1
