@@ -31,14 +31,52 @@ if __name__ == "__main__":
                             val = int(val)
                             val = abs(val) if abs(val) <= 9 else None
                         except:
+                            val = None
                             print("Invalid compression level")
-
+                    case "loggingLevel":
+                        match val:
+                            case "DEBUG":
+                                val = logging.DEBUG
+                            case "INFO":
+                                val = logging.INFO
+                            case "WARNING":
+                                val = logging.WARNING
+                            case "ERROR":
+                                val = logging.ERROR
+                            case "CRITICAL":
+                                val = logging.CRITICAL
+                            case _:
+                                val = logging.INFO
+                    case "timeInterval":
+                        try:
+                            val = float(val)
+                            val = abs(val)
+                        except:
+                            val = None
+                            print("Invalid time interval")
+                    case "filePattern":
+                        val = val.split("|")
+                CONFIG[key] = val if val != None else CONFIG[key]
+                print("Config loaded.")
     except:
         with open("settings.cfg", "w") as f:
-            pass
+            f.write("""## To change the settings from default, enter config keys with values or uncomment following lines
+## Compression level is an integer between 0 and 9, higher the compression level, smaller the file, but it takes longer to compress.
+#compressionLevel=5
+## Root folder is the folder the program will start searching for the files in, it will search all folders and subfolders in order to find matching files.
+#rootFolderPath=.
+## File pattern is the pattern in the name the program will look for when searching for files, use the pipe "|" character to separate patterns
+#filepattern=*.csv
+## Time interval is the time between the start of each iteration of the search measured in seconds (you can include milliseconds by using the dot "." character)
+#timeInterval=60
+## Logging level is the level of onformation saved to the .log file. Acceptable options are: DEBUG | INFO | WARNING | ERROR | CRITICAL
+#loggingLevel=INFO""")
+            quit()
+
     logging.basicConfig(filename=f'app_{time.strftime("%Y%m%d%H%M%S")}.log', filemode='w',
                         level=CONFIG["loggingLevel"], format='[%(asctime)s]: {%(levelname)s} %(message)s')
     while True:
+        startTime = time.time()
         noFiles = 0
         for pattern in CONFIG["filePattern"]:
             try:
@@ -59,4 +97,5 @@ if __name__ == "__main__":
                 logging.debug(f"Compression for pattern {pattern} complete.")
         logging.info(f"Compressed {noFiles} files.")
         print(f"Compressed {noFiles} files.")
-        time.sleep(CONFIG["timeInterval"])
+        while time.time()-startTime < CONFIG["timeInterval"]:
+            pass
