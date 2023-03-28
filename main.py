@@ -5,13 +5,12 @@ import logging
 import time
 
 CONFIG = {"compressionLevel": 5, "rootFolderPath": ".",
-          "filePattern": ["*.csv"], "loggingLevel": logging.INFO, "timeInterval": 10}
+          "filePatterns": ["*.csv"], "loggingLevel": logging.INFO, "timeInterval": 60}
 
 
 def compressAndDelete(filename):
-    with open(filename, "rb") as f_in, gzip.open(f"{filename}.gz", "wb") as f_out:
-        data = f_in.read()
-        f_out.write(gzip.compress(data, CONFIG["compressionLevel"]))
+    with open(filename, "rb") as f_in, gzip.open(f"{filename}.gz", "wb", compresslevel=CONFIG["compressionLevel"]) as f_out:
+        f_out.write(f_in.read())
     os.remove(filename)
 
 
@@ -25,6 +24,7 @@ if __name__ == "__main__":
                 continue
             else:
                 key, val = line.split("=")
+                val = val.strip()
                 match key:
                     case "compressionLevel":
                         try:
@@ -54,21 +54,31 @@ if __name__ == "__main__":
                         except:
                             val = None
                             print("Invalid time interval")
-                    case "filePattern":
+                    case "filePatterns":
                         val = val.split("|")
+                        val = list(map(lambda x: x.strip(), val))
+                    case "rootFolderPath":
+                        val = val.split("|")
+                        val = list(map(lambda x: x.strip(), val))
                 CONFIG[key] = val if val != None else CONFIG[key]
-                print("Config loaded.")
+        print("Config loaded.")
+        print(f"{CONFIG['loggingLevel']}")
     except:
         with open("settings.cfg", "w") as f:
             f.write("""## To change the settings from default, enter config keys with values or uncomment following lines
+
 ## Compression level is an integer between 0 and 9, higher the compression level, smaller the file, but it takes longer to compress.
 #compressionLevel=5
+
 ## Root folder is the folder the program will start searching for the files in, it will search all folders and subfolders in order to find matching files.
 #rootFolderPath=.
+
 ## File pattern is the pattern in the name the program will look for when searching for files, use the pipe "|" character to separate patterns
-#filepattern=*.csv
+#filePatterns=*.csv
+
 ## Time interval is the time between the start of each iteration of the search measured in seconds (you can include milliseconds by using the dot "." character)
 #timeInterval=60
+
 ## Logging level is the level of onformation saved to the .log file. Acceptable options are: DEBUG | INFO | WARNING | ERROR | CRITICAL
 #loggingLevel=INFO""")
             quit()
@@ -78,23 +88,25 @@ if __name__ == "__main__":
     while True:
         startTime = time.time()
         noFiles = 0
-        for pattern in CONFIG["filePattern"]:
-            try:
-                folder = pathlib.Path(
-                    CONFIG["rootFolderPath"]).glob(f"**/{pattern}")
-            except:
-                logging.error(
-                    f"{pattern} is not a valid pattern", exc_info=True)
-            else:
-                for f in folder:
-                    logging.debug(f"{f} is processed.")
-                    try:
-                        compressAndDelete(f)
-                        noFiles += 1
-                    except Exception as e:
-                        logging.critical(f"New exception: {e}", exc_info=True)
-            finally:
-                logging.debug(f"Compression for pattern {pattern} complete.")
+        for pattern in CONFIG["filePatterns"]:
+            for path in CONFIG["rootFolderPath"]:
+                try:
+                    folder = pathlib.Path(path).glob(f"**/{pattern}")
+                except:
+                    logging.error(
+                        f"{pattern} is not a valid pattern", exc_info=True)
+                else:
+                    for f in folder:
+                        logging.debug(f"{f} is processed.")
+                        try:
+                            compressAndDelete(f)
+                            noFiles += 1
+                        except Exception as e:
+                            logging.critical(
+                                f"New exception: {e}", exc_info=True)
+                finally:
+                    logging.debug(
+                        f"Compression for pattern {pattern} complete.")
         logging.info(f"Compressed {noFiles} files.")
         print(f"Compressed {noFiles} files.")
         while time.time()-startTime < CONFIG["timeInterval"]:
